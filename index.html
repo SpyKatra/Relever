@@ -103,7 +103,7 @@ main{padding:12px 12px calc(env(safe-area-inset-bottom) + 86px);max-width:720px;
 <body>
 <header>
   <div class="t"><h1>Relevé compteurs</h1><div class="wk" id="wk"></div></div>
-  <button id="cfgBtn" aria-label="Réglages GitHub">⚙</button>
+  <button id="cfgBtn" aria-label="Réglages">⚙</button>
 </header>
 <div class="bar"><i id="bar"></i></div>
 
@@ -118,16 +118,17 @@ main{padding:12px 12px calc(env(safe-area-inset-bottom) + 86px);max-width:720px;
 </nav>
 
 <div class="ov" id="ov"><div class="sheet">
-  <h2>Enregistrement GitHub</h2>
-  <p>Le fichier Excel est déposé dans ton dépôt. Le jeton reste uniquement sur cet appareil.</p>
-  <label>Utilisateur ou organisation</label><input id="cOwner" autocapitalize="off" autocorrect="off">
-  <label>Dépôt</label><input id="cRepo" autocapitalize="off" autocorrect="off">
-  <label>Branche</label><input id="cBranch" autocapitalize="off" autocorrect="off">
-  <label>Dossier des relevés</label><input id="cDir" autocapitalize="off" autocorrect="off">
-  <label>Jeton d'accès (fine-grained, Contents : lecture et écriture)</label><input id="cTok" type="password" autocapitalize="off" autocorrect="off" placeholder="github_pat_…">
-  <div class="row2"><button class="btn sec2" id="cTest">Tester</button><button class="btn" id="cSave">OK</button></div>
-  <div class="status" id="cStatus"></div>
-  <div class="row2"><button class="btn sec2" id="cReset">Vider le relevé de la semaine</button></div>
+  <div id="pTok">
+    <h2>Jeton GitHub</h2>
+    <p>Nécessaire une seule fois pour enregistrer le fichier Excel dans le dépôt. Il reste uniquement sur cet appareil.</p>
+    <label>Jeton d'accès</label><input id="cTok" type="password" autocapitalize="off" autocorrect="off" placeholder="github_pat_…">
+    <div class="row2"><button class="btn sec2" id="cTest">Tester</button><button class="btn" id="cSave">Enregistrer</button></div>
+    <div class="status" id="cStatus"></div>
+  </div>
+  <div id="pReset">
+    <h2>Réglages</h2>
+    <div class="row2"><button class="btn sec2" id="cReset">Vider le relevé de la semaine</button></div>
+  </div>
 </div></div>
 
 <script>
@@ -316,10 +317,7 @@ var listeModif=lire('rc_listeModif',false);
 var store=lire('rc_releve',null);
 if(!store||store.sem!==SEM.cle)store={sem:SEM.cle,r:{}};
 var rel=store.r, ouverts={}, onglet=1, filtre='tous';
-var cfg=lire('rc_cfg',null)||(function(){
-  var m=location.hostname.match(/^([^.]+)\.github\.io$/),seg=location.pathname.split('/').filter(Boolean)[0];
-  return {owner:m?m[1]:'SpyKatra',repo:'relever',branch:'main',dir:'releves',token:''};
-})();
+var cfg={owner:'SpyKatra',repo:'Relever',branch:'main',dir:'releves',token:(lire('rc_cfg',null)||{}).token||''};
 
 function sauver(){ecrire('rc_releve',store)}
 function sauverListe(modif){listeModif=modif;ecrire('rc_liste',liste);ecrire('rc_listeModif',modif)}
@@ -474,7 +472,7 @@ async function erreur(r){
 function statut(el,cls,html){el.className='status '+cls;el.innerHTML=html}
 async function enregistrer(){
   var st=$('st'),btn=$('save');
-  if(!cfg.token||!cfg.owner||!cfg.repo){ouvrirCfg('Renseigne le dépôt et le jeton pour enregistrer.');return}
+  if(!cfg.token){ouvrirCfg('Colle ton jeton GitHub pour enregistrer.');return}
   btn.disabled=true;statut(st,'info','Enregistrement en cours…');
   try{
     var chemin=(cfg.dir?cfg.dir.replace(/^\/+|\/+$/g,'')+'/':'')+nomFichier();
@@ -486,6 +484,7 @@ async function enregistrer(){
     store.dernier=new Date().toLocaleString('fr-CA',{dateStyle:'medium',timeStyle:'short'});sauver();
     statut(st,'ok','Enregistré : <b>'+h(chemin)+'</b><br><a href="'+h(c.html_url)+'" target="_blank" rel="noopener">Ouvrir dans GitHub</a>');
   }catch(e){
+    if(/^Jeton refusé/.test(e.message)){btn.disabled=false;st.className='status';ouvrirCfg('Jeton refusé (invalide ou expiré). Colle un nouveau jeton.');return}
     statut(st,'err',h(e.message&&/fetch|network|load/i.test(e.message)&&!/GitHub|Jeton|Accès|Dépôt|Conflit/.test(e.message)?
       'Pas de connexion. Tes relevés restent sur l\'appareil : réessaie quand le réseau revient.':e.message));
   }
@@ -493,14 +492,14 @@ async function enregistrer(){
 }
 
 // ----- Réglages -----
-function ouvrirCfg(msg){
-  $('cOwner').value=cfg.owner;$('cRepo').value=cfg.repo;$('cBranch').value=cfg.branch;$('cDir').value=cfg.dir;$('cTok').value=cfg.token;
-  if(msg)statut($('cStatus'),'info',h(msg));else $('cStatus').className='status';
+function ouvrirCfg(msg){ // msg => demande du jeton ; sinon réglages (vider le relevé)
+  $('pTok').classList.toggle('hide',!msg);$('pReset').classList.toggle('hide',!!msg);
+  if(msg){$('cTok').value=cfg.token;statut($('cStatus'),'info',h(msg))}
   $('ov').classList.add('on');
 }
-function lireCfg(){cfg={owner:$('cOwner').value.trim(),repo:$('cRepo').value.trim(),branch:$('cBranch').value.trim()||'main',dir:$('cDir').value.trim(),token:$('cTok').value.trim()};ecrire('rc_cfg',cfg)}
+function lireCfg(){cfg.token=$('cTok').value.trim();ecrire('rc_cfg',{token:cfg.token})}
 $('cfgBtn').onclick=function(){ouvrirCfg()};
-$('cSave').onclick=function(){lireCfg();$('ov').classList.remove('on');if(onglet===2)rendre2()};
+$('cSave').onclick=function(){lireCfg();$('ov').classList.remove('on');if(cfg.token)enregistrer()};
 $('ov').addEventListener('click',function(e){if(e.target===$('ov'))$('ov').classList.remove('on')});
 $('cTest').onclick=async function(){
   lireCfg();var s=$('cStatus');statut(s,'info','Test…');
