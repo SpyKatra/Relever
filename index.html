@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Relevé">
 <meta name="theme-color" content="#14202b">
@@ -19,7 +19,8 @@
   --okbg:#143524; --ok:#5fd08e; --nabg:#2a3641; --na:#b8c3cd; --xbg:#40280f; --x:#ffb469;
   --todobg:#431a17; --todo:#ff8f86; --head:#0a1016;
 }}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html{-webkit-text-size-adjust:100%}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 button,input,select{font:inherit;color:inherit}
 header{position:sticky;top:0;z-index:5;background:var(--head);color:var(--headink);
@@ -54,7 +55,7 @@ main{padding:12px 12px calc(env(safe-area-inset-bottom) + 86px);max-width:720px;
 .row input{flex:1;min-width:0;height:44px;border:1.5px solid var(--line);border-radius:9px;background:var(--bg);padding:0 9px;font-size:17px;font-variant-numeric:tabular-nums}
 .row input:focus{outline:none;border-color:var(--acc)}
 .row input:disabled{opacity:.35}
-.row select{height:44px;border:1.5px solid var(--line);border-radius:9px;background:var(--bg);padding:0 4px;font-size:14px;width:58px}
+.row select{height:44px;border:1.5px solid var(--line);border-radius:9px;background:var(--bg);padding:0 2px;font-size:16px;width:62px}
 .tg{width:44px;height:44px;border-radius:9px;border:1.5px solid var(--line);background:none;font-weight:700;font-size:14px;color:var(--mut);flex:none}
 .tg.na.on{background:var(--nabg);color:var(--na);border-color:var(--na)}
 .tg.x.on{background:var(--xbg);color:var(--x);border-color:var(--x)}
@@ -519,6 +520,11 @@ $('cReset').onclick=function(){
   if(!armé){armé=true;this.textContent='Toucher encore pour confirmer';var b=this;setTimeout(function(){armé=false;b.textContent='Vider le relevé de la semaine'},4000);return}
   armé=false;this.textContent='Vider le relevé de la semaine';store={sem:SEM.cle,r:{}};rel=store.r;sauver();$('ov').classList.remove('on');aller(onglet);majEntete();
 };
+
+// ----- Pas de zoom (pincement ou double-tape) -----
+['gesturestart','gesturechange','gestureend'].forEach(function(e){document.addEventListener(e,function(ev){ev.preventDefault()},{passive:false})});
+document.addEventListener('touchmove',function(ev){if(ev.touches.length>1)ev.preventDefault()},{passive:false});
+document.addEventListener('dblclick',function(ev){ev.preventDefault()});
 
 // ----- Démarrage -----
 $('wk').textContent='Semaine du '+SEM.nom;
