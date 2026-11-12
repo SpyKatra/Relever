@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Relevé">
+<meta name="theme-color" content="#14202b">
+<title>Relevé compteurs</title>
+<style>
+:root{
+  --bg:#eef1f4; --card:#fff; --ink:#14202b; --mut:#5d6b78; --line:#d5dbe1;
+  --acc:#f2b705; --accink:#14202b; --ok:#1c8a4b; --okbg:#e2f4e9;
+  --na:#52606d; --nabg:#e3e7eb; --x:#b4530a; --xbg:#fdebd7; --todo:#b3261e; --todobg:#fbe6e4;
+  --head:#14202b; --headink:#fff;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d151c; --card:#18232d; --ink:#eef2f5; --mut:#93a1ae; --line:#2b3945;
+  --okbg:#143524; --ok:#5fd08e; --nabg:#2a3641; --na:#b8c3cd; --xbg:#40280f; --x:#ffb469;
+  --todobg:#431a17; --todo:#ff8f86; --head:#0a1016;
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+button,input,select{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;background:var(--head);color:var(--headink);
+  padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;display:flex;align-items:center;gap:10px}
+header .t{flex:1;min-width:0}
+header h1{margin:0;font-size:17px;font-weight:700;letter-spacing:.2px}
+header .wk{font-size:13px;color:#f2b705;font-variant-numeric:tabular-nums}
+header button{background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:10px;width:42px;height:42px;font-size:20px}
+.bar{height:5px;background:rgba(255,255,255,.15)}
+.bar i{display:block;height:100%;background:var(--acc);width:0;transition:width .25s}
+main{padding:12px 12px calc(env(safe-area-inset-bottom) + 86px);max-width:720px;margin:0 auto}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:var(--card);
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;border:0;background:none;padding:12px 4px 10px;font-weight:600;color:var(--mut);font-size:14px;border-top:3px solid transparent}
+.tabs button.on{color:var(--ink);border-top-color:var(--acc)}
+.tabs small{display:block;font-weight:500;font-size:12px;color:var(--mut)}
+.sec{background:var(--card);border-radius:14px;margin-bottom:10px;overflow:hidden;border:1px solid var(--line)}
+.sec>button{width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;padding:15px 14px;text-align:left}
+.sec>button .n{flex:1;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.4px}
+.sec>button .c{font-size:13px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--todobg);color:var(--todo);font-variant-numeric:tabular-nums}
+.sec>button .c.done{background:var(--okbg);color:var(--ok)}
+.sec>button .ch{color:var(--mut);transition:transform .2s;font-size:13px}
+.sec.open>button .ch{transform:rotate(90deg)}
+.body{display:none;border-top:1px solid var(--line);padding:4px 10px 12px}
+.sec.open .body{display:block}
+.row{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--line)}
+.row .num{width:58px;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;border-left:4px solid var(--todo);padding-left:7px}
+.row.ok .num{border-left-color:var(--ok)}
+.row.sna .num{border-left-color:var(--na)}
+.row.sx .num{border-left-color:var(--x)}
+.row .num small{display:block;font-weight:500;font-size:11px;color:var(--mut)}
+.row input{flex:1;min-width:0;height:44px;border:1.5px solid var(--line);border-radius:9px;background:var(--bg);padding:0 9px;font-size:17px;font-variant-numeric:tabular-nums}
+.row input:focus{outline:none;border-color:var(--acc)}
+.row input:disabled{opacity:.35}
+.row select{height:44px;border:1.5px solid var(--line);border-radius:9px;background:var(--bg);padding:0 4px;font-size:14px;width:58px}
+.tg{width:44px;height:44px;border-radius:9px;border:1.5px solid var(--line);background:none;font-weight:700;font-size:14px;color:var(--mut);flex:none}
+.tg.na.on{background:var(--nabg);color:var(--na);border-color:var(--na)}
+.tg.x.on{background:var(--xbg);color:var(--x);border-color:var(--x)}
+.del{border:0;background:none;color:var(--todo);font-size:12px;padding:2px 0;text-decoration:underline}
+.add{display:flex;gap:6px;margin-top:10px}
+.add input{flex:1;min-width:0;height:44px;border:1.5px dashed var(--mut);border-radius:9px;background:none;padding:0 10px}
+.add select{height:44px;border:1.5px solid var(--line);border-radius:9px;background:var(--bg);width:64px}
+.btn{height:44px;border:0;border-radius:9px;background:var(--acc);color:var(--accink);font-weight:700;padding:0 14px}
+.btn.big{width:100%;height:54px;font-size:17px;border-radius:12px}
+.btn.sec2{background:none;border:1.5px solid var(--line);color:var(--ink)}
+.btn:disabled{opacity:.5}
+.msg{font-size:13px;color:var(--todo);margin-top:6px;min-height:0}
+.sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.sum div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center}
+.sum b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.sum span{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.3px}
+.flt{display:flex;gap:6px;margin-bottom:10px}
+.flt button{flex:1;height:38px;border-radius:9px;border:1.5px solid var(--line);background:none;font-weight:600;font-size:14px;color:var(--mut)}
+.flt button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.rc{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;padding:10px 12px}
+.rc h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);display:flex;justify-content:space-between}
+.rl{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.rl b{font-size:16px}
+.chip{font-size:13px;font-weight:700;padding:3px 9px;border-radius:99px}
+.chip.ok{background:var(--okbg);color:var(--ok)}.chip.na{background:var(--nabg);color:var(--na)}
+.chip.x{background:var(--xbg);color:var(--x)}.chip.todo{background:var(--todobg);color:var(--todo);border:0}
+.save{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:14px}
+.save .fn{font-size:13px;color:var(--mut);margin-bottom:10px;word-break:break-word}
+.save .fn b{color:var(--ink)}
+.status{margin-top:10px;font-size:14px;padding:10px;border-radius:9px;display:none}
+.status.ok{display:block;background:var(--okbg);color:var(--ok)}
+.status.err{display:block;background:var(--todobg);color:var(--todo)}
+.status.info{display:block;background:var(--nabg);color:var(--na)}
+.status a{color:inherit;font-weight:700}
+.row2{display:flex;gap:8px;margin-top:8px}.row2 .btn{flex:1;font-size:14px}
+.ov{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center}
+.ov.on{display:flex}
+.sheet{background:var(--card);width:100%;max-width:720px;border-radius:18px 18px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom) + 16px);max-height:92vh;overflow:auto}
+.sheet h2{margin:0 0 4px;font-size:18px}
+.sheet p{font-size:13px;color:var(--mut);margin:4px 0 10px}
+.sheet label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--mut);margin-top:10px}
+.sheet input{width:100%;height:44px;border:1.5px solid var(--line);border-radius:9px;background:var(--bg);padding:0 10px;margin-top:4px}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="t"><h1>Relevé compteurs</h1><div class="wk" id="wk"></div></div>
+  <button id="cfgBtn" aria-label="Réglages GitHub">⚙</button>
+</header>
+<div class="bar"><i id="bar"></i></div>
+
+<main>
+  <section id="tab1"></section>
+  <section id="tab2" class="hide"></section>
+</main>
+
+<nav class="tabs">
+  <button id="b1" class="on">Équipements<small id="b1s"></small></button>
+  <button id="b2">Récapitulatif<small id="b2s"></small></button>
+</nav>
+
+<div class="ov" id="ov"><div class="sheet">
+  <h2>Enregistrement GitHub</h2>
+  <p>Le fichier Excel est déposé dans ton dépôt. Le jeton reste uniquement sur cet appareil.</p>
+  <label>Utilisateur ou organisation</label><input id="cOwner" autocapitalize="off" autocorrect="off">
+  <label>Dépôt</label><input id="cRepo" autocapitalize="off" autocorrect="off">
+  <label>Branche</label><input id="cBranch" autocapitalize="off" autocorrect="off">
+  <label>Dossier des relevés</label><input id="cDir" autocapitalize="off" autocorrect="off">
+  <label>Jeton d'accès (fine-grained, Contents : lecture et écriture)</label><input id="cTok" type="password" autocapitalize="off" autocorrect="off" placeholder="github_pat_…">
+  <div class="row2"><button class="btn sec2" id="cTest">Tester</button><button class="btn" id="cSave">OK</button></div>
+  <div class="status" id="cStatus"></div>
+  <div class="row2"><button class="btn sec2" id="cReset">Vider le relevé de la semaine</button></div>
+</div></div>
+
+<script>
+/*CORE*/
+// ---------- Liste d'équipements tirée du Template.xlsx ----------
+// col : colonne du bloc dans le fichier Excel (0 = A-C, 1 = E-G, 2 = I-K)
+function H(a){return a.map(function(n){return {n:String(n),u:'Hrs'}})}
+function U(a,u){return a.map(function(n){return {n:String(n),u:u}})}
+var DEFAUT=[
+ {id:'gpu',nom:'GPU',col:0,unit:'Hrs',items:H([1114,1057,1100,1113,1111,1101,1102,1121,1055,1115,1400,1122])},
+ {id:'belt',nom:'BELTLOADER',col:1,unit:'Hrs',items:H([608,611,612,615,614,602,641,629])},
+ {id:'stair',nom:'STAIRTRUCK',col:1,unit:'Hrs',items:U([104],'')},
+ {id:'push',nom:'PUSH',col:0,unit:'Hrs',items:H([713,767]).concat(U([900,901],''),H([903,908,909,914,919,923,924]),U([912,757,768,927,930],''))},
+ {id:'heater',nom:'HEATER',col:1,unit:'Hrs',items:H([1201,1206,1208,1213,1225,1226,1228,1229])},
+ {id:'eau',nom:'TRUCK EAU / LAV',col:2,dual:true,unit:'',items:U([300,302,303],'')},
+ {id:'mule',nom:'MULE CHARLATTE',col:2,unit:'Hrs',items:H([887,953,954,957,889,956,902,883,955])},
+ {id:'fuel',nom:'Pick up Fuel',col:2,unit:'Km',items:U([1424],'Km')},
+ {id:'vanne',nom:'VANNE',col:2,unit:'Km',items:U([252,254,256],'Km')},
+ {id:'fork',nom:'FORKLIFT',col:1,unit:'Hrs',items:H([219,232])},
+ {id:'cargo',nom:'CARGOLOADER',col:2,unit:'Hrs',items:H([500,513,517])},
+ {id:'meca',nom:'Mécano',col:0,unit:'Hrs',items:[{n:'306',u:'Km'},{n:'769',u:'Hrs'}]},
+ {id:'clim',nom:'Air Clim',col:1,unit:'Hrs',items:H([1214])},
+ {id:'air',nom:'AIRSTART',col:2,unit:'Hrs',items:H([1302])}
+];
+
+// ---------- Semaine (dimanche au samedi) ----------
+var MOIS=['Janv','Févr','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
+function semaine(d){
+  var a=new Date(d.getFullYear(),d.getMonth(),d.getDate()-d.getDay());
+  var b=new Date(a.getFullYear(),a.getMonth(),a.getDate()+6);
+  var p=function(x){return String(x).padStart(2,'0')};
+  return {debut:a,fin:b,
+    cle:a.getFullYear()+'-'+p(a.getMonth()+1)+'-'+p(a.getDate()),
+    nom:a.getDate()+' '+MOIS[a.getMonth()]+(a.getFullYear()!==b.getFullYear()?' '+a.getFullYear():'')+' au '+b.getDate()+' '+MOIS[b.getMonth()]+' '+b.getFullYear()};
+}
+function jour(d){return d.getDate()+' '+MOIS[d.getMonth()]+' '+d.getFullYear()}
+
+// ---------- État d'un équipement ----------
+function etat(sec,r){ // 'ok' | 'na' | 'x' | 'todo'
+  r=r||{};
+  if(r.s==='NA')return 'na';
+  if(r.s==='X')return 'x';
+  var a=(r.v||'').trim(),b=(r.v2||'').trim();
+  if(sec.dual)return (a&&b)?'ok':'todo';
+  return a?'ok':'todo';
+}
+function valeur(s){ // nombre si possible, sinon texte
+  s=(s||'').trim(); if(!s)return null;
+  var t=s.replace(/\s/g,'').replace(',','.');
+  return /^-?\d+(\.\d+)?$/.test(t)?Number(t):s;
+}
+
+// ---------- Fabrication du fichier .xlsx (sans librairie) ----------
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function colL(c){return 'ABCDEFGHIJK'[c]}
+function construireXlsx(sections,rel,sem,date){
+  var cells={},merges=[],xfs=['0|0|'],borders=['|||'];
+  var FONTS={base:0,titre:1,num:2,gras:3};
+  function xf(font,b,align){
+    var bk=b||'|||',bi=borders.indexOf(bk); if(bi<0){borders.push(bk);bi=borders.length-1}
+    var k=font+'|'+bi+'|'+(align||''),i=xfs.indexOf(k); if(i<0){xfs.push(k);i=xfs.length-1}
+    return i;
+  }
+  function put(r,c,v,s){(cells[r]=cells[r]||{})[c]={v:v,s:s}}
+  var M='medium',T='thin';
+  // b = gauche|droite|haut|bas
+  function bd(l,r,t,b){return [l,r,t,b].join('|')}
+  // Titre A1:E2
+  for(var r=1;r<=2;r++)for(var c=0;c<=4;c++)
+    put(r,c,(r===1&&c===0)?"Relevé compteur d'heures / Kilometrage":null,xf(FONTS.titre,bd(c===0?M:'',c===4?M:'',r===1?M:'',r===2?M:''),'c'));
+  merges.push('A1:E2');
+  put(3,0,'Semaine du '+sem.nom+' — relevé fait le '+jour(date),xf(FONTS.base,'',''));
+  // Légende G1:J3
+  for(c=6;c<=9;c++)put(1,c,c===6?'Legende':null,xf(FONTS.base,bd(c===6?M:'',c===9?M:'',M,T),'c'));
+  merges.push('G1:J1');
+  [[2,'NA','Aucune donnée disponible'],[3,'X','Équipement non trouvé']].forEach(function(l){
+    put(l[0],6,l[1],xf(FONTS.gras,bd(M,T,T,l[0]===3?M:T),'c'));
+    for(var c=7;c<=9;c++)put(l[0],c,c===7?l[2]:null,xf(FONTS.base,bd(c===7?T:'',c===9?M:'',T,l[0]===3?M:T),'c'));
+    merges.push('H'+l[0]+':J'+l[0]);
+  });
+  // Blocs
+  var maxR=3;
+  [0,1,2].forEach(function(col){
+    var c0=col*4,row=5;
+    sections.filter(function(s){return s.col===col}).forEach(function(sec){
+      var n=sec.items.length,last=row+n;
+      var hd=sec.dual?[sec.nom,'Relevé Hrs','Relevé Km']:[sec.nom,'Relevé','Hrs ou Km'];
+      hd.forEach(function(t,i){put(row,c0+i,t,xf(FONTS.base,bd(i===0?M:T,i===2?M:T,M,n?T:M),'c'))});
+      sec.items.forEach(function(it,k){
+        var rr=row+1+k,bot=(rr===last)?M:T,r=rel[sec.id+'|'+it.n]||{},e=etat(sec,r);
+        var mark=e==='na'?'NA':e==='x'?'X':null;
+        var v1=mark||valeur(r.v),v3=sec.dual?(mark||valeur(r.v2)):(it.u||null);
+        put(rr,c0,valeur(it.n),xf(FONTS.num,bd(M,T,T,bot),'c'));
+        put(rr,c0+1,v1,xf(FONTS.base,bd(T,T,T,bot),'c'));
+        put(rr,c0+2,v3,xf(FONTS.base,bd(T,M,T,bot),'c'));
+      });
+      if(last>maxR)maxR=last;
+      row=last+2;
+    });
+  });
+  // Feuille
+  var rows='';
+  Object.keys(cells).map(Number).sort(function(a,b){return a-b}).forEach(function(r){
+    rows+='<row r="'+r+'" ht="'+(r===1?15:16.2)+'" customHeight="1">';
+    Object.keys(cells[r]).map(Number).sort(function(a,b){return a-b}).forEach(function(c){
+      var x=cells[r][c],ref=colL(c)+r;
+      if(x.v===null||x.v===undefined)rows+='<c r="'+ref+'" s="'+x.s+'"/>';
+      else if(typeof x.v==='number')rows+='<c r="'+ref+'" s="'+x.s+'"><v>'+x.v+'</v></c>';
+      else rows+='<c r="'+ref+'" s="'+x.s+'" t="inlineStr"><is><t xml:space="preserve">'+esc(x.v)+'</t></is></c>';
+    });
+    rows+='</row>';
+  });
+  var W=[15.55,12,9.66,6,12.55,12,9.66,9.33,17.55,11,9.66];
+  var X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  var NS='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+  var sheet=X+'<worksheet '+NS+'><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:K'+maxR+'"/>'+
+    '<sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>'+
+    W.map(function(w,i){return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>'}).join('')+
+    '</cols><sheetData>'+rows+'</sheetData><mergeCells count="'+merges.length+'">'+
+    merges.map(function(m){return '<mergeCell ref="'+m+'"/>'}).join('')+'</mergeCells>'+
+    '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>'+
+    '<pageSetup paperSize="1" orientation="portrait" fitToWidth="1" fitToHeight="1"/></worksheet>';
+  function side(tag,st){return st?'<'+tag+' style="'+st+'"><color auto="1"/></'+tag+'>':'<'+tag+'/>'}
+  var styles=X+'<styleSheet '+NS+'><fonts count="4">'+
+    '<font><sz val="11"/><name val="Aptos Narrow"/><family val="2"/></font>'+
+    '<font><sz val="18"/><name val="Aptos Narrow"/><family val="2"/></font>'+
+    '<font><b/><sz val="11"/><name val="Arial"/><family val="2"/></font>'+
+    '<font><b/><sz val="11"/><name val="Aptos Narrow"/><family val="2"/></font></fonts>'+
+    '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'+
+    '<borders count="'+borders.length+'">'+borders.map(function(b){var p=b.split('|');
+      return '<border>'+side('left',p[0])+side('right',p[1])+side('top',p[2])+side('bottom',p[3])+'<diagonal/></border>'}).join('')+'</borders>'+
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
+    '<cellXfs count="'+xfs.length+'">'+xfs.map(function(k){var p=k.split('|');
+      return '<xf numFmtId="0" fontId="'+p[0]+'" fillId="0" borderId="'+p[1]+'" xfId="0" applyFont="1" applyBorder="1"'+
+        (p[2]?' applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>':'/>')}).join('')+'</cellXfs>'+
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  var R='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  var files=[
+    ['[Content_Types].xml',X+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+    ['_rels/.rels',X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="'+R+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml',X+'<workbook '+NS+' xmlns:r="'+R+'"><sheets><sheet name="Relevé" sheetId="1" r:id="rId1"/></sheets></workbook>'],
+    ['xl/_rels/workbook.xml.rels',X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="'+R+'/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="'+R+'/styles" Target="styles.xml"/></Relationships>'],
+    ['xl/styles.xml',styles],
+    ['xl/worksheets/sheet1.xml',sheet]
+  ];
+  return zip(files,date);
+}
+var CRCT=(function(){var t=[],n,c,k;for(n=0;n<256;n++){c=n;for(k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){var c=0xFFFFFFFF;for(var i=0;i<u.length;i++)c=CRCT[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function zip(files,d){
+  var enc=new TextEncoder(),parts=[],central=[],off=0;
+  var dt=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate(),tm=(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1);
+  function hdr(n){var b=new Uint8Array(n);return {b:b,v:new DataView(b.buffer)}}
+  files.forEach(function(f){
+    var name=enc.encode(f[0]),data=enc.encode(f[1]),crc=crc32(data);
+    var l=hdr(30+name.length);
+    l.v.setUint32(0,0x04034b50,true);l.v.setUint16(4,20,true);l.v.setUint16(6,0x0800,true);l.v.setUint16(8,0,true);
+    l.v.setUint16(10,tm,true);l.v.setUint16(12,dt,true);l.v.setUint32(14,crc,true);
+    l.v.setUint32(18,data.length,true);l.v.setUint32(22,data.length,true);l.v.setUint16(26,name.length,true);
+    l.b.set(name,30);
+    var c=hdr(46+name.length);
+    c.v.setUint32(0,0x02014b50,true);c.v.setUint16(4,20,true);c.v.setUint16(6,20,true);c.v.setUint16(8,0x0800,true);
+    c.v.setUint16(12,tm,true);c.v.setUint16(14,dt,true);c.v.setUint32(16,crc,true);
+    c.v.setUint32(20,data.length,true);c.v.setUint32(24,data.length,true);c.v.setUint16(28,name.length,true);
+    c.v.setUint32(42,off,true);c.b.set(name,46);
+    parts.push(l.b,data);central.push(c.b);off+=l.b.length+data.length;
+  });
+  var cs=central.reduce(function(a,b){return a+b.length},0),e=hdr(22);
+  e.v.setUint32(0,0x06054b50,true);e.v.setUint16(8,files.length,true);e.v.setUint16(10,files.length,true);
+  e.v.setUint32(12,cs,true);e.v.setUint32(16,off,true);
+  var all=parts.concat(central,[e.b]),out=new Uint8Array(off+cs+22),p=0;
+  all.forEach(function(a){out.set(a,p);p+=a.length});
+  return out;
+}
+/*ENDCORE*/
+
+// ================= Application =================
+var $=function(id){return document.getElementById(id)};
+function lire(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function ecrire(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function h(s){return esc(s)}
+
+var SEM=semaine(new Date());
+var liste=lire('rc_liste',null)||JSON.parse(JSON.stringify(DEFAUT));
+var listeModif=lire('rc_listeModif',false);
+var store=lire('rc_releve',null);
+if(!store||store.sem!==SEM.cle)store={sem:SEM.cle,r:{}};
+var rel=store.r, ouverts={}, onglet=1, filtre='tous';
+var cfg=lire('rc_cfg',null)||(function(){
+  var m=location.hostname.match(/^([^.]+)\.github\.io$/),seg=location.pathname.split('/').filter(Boolean)[0];
+  return {owner:m?m[1]:'SpyKatra',repo:'relever',branch:'main',dir:'releves',token:''};
+})();
+
+function sauver(){ecrire('rc_releve',store)}
+function sauverListe(modif){listeModif=modif;ecrire('rc_liste',liste);ecrire('rc_listeModif',modif)}
+function cle(sec,it){return sec.id+'|'+it.n}
+function compte(sec){var n=0;sec.items.forEach(function(it){if(etat(sec,rel[cle(sec,it)])!=='todo')n++});return n}
+function totaux(){var t={ok:0,na:0,x:0,todo:0,n:0};liste.forEach(function(s){s.items.forEach(function(it){t[etat(s,rel[cle(s,it)])]++;t.n++})});return t}
+
+// ----- Onglet 1 -----
+function rendre1(){
+  var o='';
+  liste.forEach(function(sec,si){
+    var c=compte(sec),n=sec.items.length;
+    o+='<div class="sec'+(ouverts[sec.id]?' open':'')+'" data-s="'+si+'"><button data-act="ouvrir"><span class="ch">▶</span><span class="n">'+h(sec.nom)+
+       '</span><span class="c'+(c===n&&n?' done':'')+'">'+c+' / '+n+'</span></button><div class="body">';
+    sec.items.forEach(function(it,ii){
+      var r=rel[cle(sec,it)]||{},e=etat(sec,r),dis=r.s?' disabled':'';
+      o+='<div class="row '+(e==='ok'?'ok':e==='na'?'sna':e==='x'?'sx':'')+'" data-i="'+ii+'"><div class="num">'+h(it.n)+
+         (it.c?'<small><button class="del" data-act="retirer">retirer</button></small>':'')+'</div>';
+      if(sec.dual){
+        o+='<input inputmode="decimal" placeholder="Hrs" data-f="v" value="'+h(r.v||'')+'"'+dis+'>'+
+           '<input inputmode="decimal" placeholder="Km" data-f="v2" value="'+h(r.v2||'')+'"'+dis+'>';
+      }else{
+        o+='<input inputmode="decimal" placeholder="Relevé" data-f="v" value="'+h(r.v||'')+'"'+dis+'>'+
+           '<select data-act="unite" aria-label="Unité"><option value=""'+(it.u?'':' selected')+'>—</option><option'+(/^hrs$/i.test(it.u)?' selected':'')+
+           '>Hrs</option><option'+(/^km$/i.test(it.u)?' selected':'')+'>Km</option></select>';
+      }
+      o+='<button class="tg na'+(r.s==='NA'?' on':'')+'" data-act="NA">NA</button><button class="tg x'+(r.s==='X'?' on':'')+'" data-act="X">X</button></div>';
+    });
+    o+='<div class="add"><input inputmode="numeric" placeholder="Ajouter un numéro" data-add>'+
+       (sec.dual?'':'<select data-addu><option'+(sec.unit==='Hrs'?' selected':'')+'>Hrs</option><option'+(sec.unit==='Km'?' selected':'')+'>Km</option></select>')+
+       '<button class="btn" data-act="ajouter">Ajouter</button></div><div class="msg"></div></div></div>';
+  });
+  $('tab1').innerHTML=o;
+}
+function ctx(el){var s=el.closest('.sec'),r=el.closest('.row');var sec=liste[+s.dataset.s];return {secEl:s,rowEl:r,sec:sec,it:r?sec.items[+r.dataset.i]:null}}
+function majLigne(c){
+  var e=etat(c.sec,rel[cle(c.sec,c.it)]);
+  c.rowEl.className='row '+(e==='ok'?'ok':e==='na'?'sna':e==='x'?'sx':'');
+  var n=compte(c.sec),t=c.sec.items.length,b=c.secEl.querySelector('.c');
+  b.textContent=n+' / '+t;b.className='c'+(n===t&&t?' done':'');
+  majEntete();
+}
+function majEntete(){
+  var t=totaux(),f=t.n-t.todo;
+  $('bar').style.width=(t.n?f/t.n*100:0)+'%';
+  $('b1s').textContent=f+' / '+t.n+' validés';
+  $('b2s').textContent=t.todo?t.todo+' à faire':'Complet';
+}
+$('tab1').addEventListener('input',function(ev){
+  var f=ev.target.dataset.f;if(!f)return;
+  var c=ctx(ev.target),k=cle(c.sec,c.it);(rel[k]=rel[k]||{})[f]=ev.target.value;sauver();majLigne(c);
+});
+$('tab1').addEventListener('change',function(ev){
+  if(ev.target.dataset.act!=='unite')return;
+  var c=ctx(ev.target);c.it.u=ev.target.value;sauverListe(true);
+});
+$('tab1').addEventListener('click',function(ev){
+  var b=ev.target.closest('[data-act]');if(!b||b.dataset.act==='unite')return;
+  var a=b.dataset.act,c=ctx(b);
+  if(a==='ouvrir'){ouverts[c.sec.id]=!ouverts[c.sec.id];c.secEl.classList.toggle('open');return}
+  if(a==='NA'||a==='X'){
+    var k=cle(c.sec,c.it),r=rel[k]=rel[k]||{};
+    r.s=r.s===a?'':a;sauver();
+    c.rowEl.querySelectorAll('.tg').forEach(function(t){t.classList.toggle('on',t.dataset.act===r.s)});
+    c.rowEl.querySelectorAll('input').forEach(function(i){i.disabled=!!r.s});
+    majLigne(c);return;
+  }
+  if(a==='ajouter'){
+    var inp=c.secEl.querySelector('[data-add]'),msg=c.secEl.querySelector('.msg'),n=inp.value.trim(),us=c.secEl.querySelector('[data-addu]');
+    if(!n){msg.textContent='Entre un numéro d\'équipement.';return}
+    if(c.sec.items.some(function(i){return i.n===n})){msg.textContent='Le '+n+' est déjà dans la liste.';return}
+    c.sec.items.push({n:n,u:us?us.value:'',c:1});sauverListe(true);rendre1();majEntete();return;
+  }
+  if(a==='retirer'){
+    delete rel[cle(c.sec,c.it)];c.sec.items.splice(+c.rowEl.dataset.i,1);sauver();sauverListe(true);rendre1();majEntete();
+  }
+});
+
+// ----- Onglet 2 -----
+function nomFichier(){return SEM.nom+'.xlsx'}
+function rendre2(){
+  var t=totaux(),o='<div class="sum"><div><b>'+t.ok+'</b><span>Relevés</span></div><div><b>'+t.na+'</b><span>NA</span></div><div><b>'+t.x+
+    '</b><span>Non trouvés</span></div><div><b style="color:var(--todo)">'+t.todo+'</b><span>À faire</span></div></div>'+
+    '<div class="flt"><button data-f="tous" class="'+(filtre==='tous'?'on':'')+'">Tous</button><button data-f="todo" class="'+(filtre==='todo'?'on':'')+
+    '">Non validés ('+t.todo+')</button></div>';
+  liste.forEach(function(sec){
+    var l='';
+    sec.items.forEach(function(it){
+      var r=rel[cle(sec,it)]||{},e=etat(sec,r);
+      if(filtre==='todo'&&e!=='todo')return;
+      var txt=e==='na'?'NA':e==='x'?'X — non trouvé':e==='todo'?'À faire':
+        (sec.dual?h(r.v)+' Hrs · '+h(r.v2)+' Km':h(r.v)+(it.u?' '+h(it.u):''));
+      l+='<div class="rl"><b>'+h(it.n)+'</b>'+(e==='todo'?'<button class="chip todo" data-go="'+sec.id+'">À faire ›</button>':'<span class="chip '+e+'">'+txt+'</span>')+'</div>';
+    });
+    if(l)o+='<div class="rc"><h3><span>'+h(sec.nom)+'</span><span>'+compte(sec)+' / '+sec.items.length+'</span></h3>'+l+'</div>';
+  });
+  if(filtre==='todo'&&!t.todo)o+='<div class="rc">Tout est validé.</div>';
+  o+='<div class="save"><div class="fn">Fichier : <b>'+h(cfg.dir?cfg.dir+'/':'')+h(nomFichier())+'</b>'+
+     (t.todo?'<br>'+t.todo+' équipement(s) non validé(s) resteront vides dans le fichier.':'')+
+     (store.dernier?'<br>Dernier enregistrement : '+h(store.dernier):'')+'</div>'+
+     '<button class="btn big" id="save">Enregistrer dans GitHub</button>'+
+     '<div class="row2"><button class="btn sec2" id="dl">Télécharger une copie</button></div><div class="status" id="st"></div></div>';
+  $('tab2').innerHTML=o;
+}
+$('tab2').addEventListener('click',function(ev){
+  var t=ev.target;
+  if(t.dataset.f){filtre=t.dataset.f;rendre2();return}
+  if(t.dataset.go){ouverts={};ouverts[t.dataset.go]=true;aller(1);
+    var el=document.querySelector('.sec.open');if(el)el.scrollIntoView({block:'start'});window.scrollBy(0,-70);return}
+  if(t.id==='dl'){telecharger();return}
+  if(t.id==='save')enregistrer();
+});
+function aller(n){
+  onglet=n;$('tab1').classList.toggle('hide',n!==1);$('tab2').classList.toggle('hide',n!==2);
+  $('b1').classList.toggle('on',n===1);$('b2').classList.toggle('on',n===2);
+  if(n===1)rendre1();else rendre2();window.scrollTo(0,0);
+}
+$('b1').onclick=function(){aller(1)};$('b2').onclick=function(){aller(2)};
+
+// ----- Excel + GitHub -----
+function fichier(){return construireXlsx(liste,rel,SEM,new Date())}
+function b64(u){var s='';for(var i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
+function telecharger(){
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([fichier()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  a.download=nomFichier();document.body.appendChild(a);a.click();a.remove();
+}
+function api(chemin,opt){
+  var url='https://api.github.com/repos/'+encodeURIComponent(cfg.owner)+'/'+encodeURIComponent(cfg.repo)+chemin;
+  opt=opt||{};opt.headers={'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+  opt.cache='no-store';
+  return fetch(url,opt);
+}
+function cheminApi(p){return '/contents/'+p.split('/').filter(Boolean).map(encodeURIComponent).join('/')}
+async function deposer(chemin,octets,message){
+  var p=cheminApi(chemin),sha,g=await api(p+'?ref='+encodeURIComponent(cfg.branch));
+  if(g.ok)sha=(await g.json()).sha;
+  else if(g.status!==404)throw await erreur(g);
+  var body={message:message,content:b64(octets),branch:cfg.branch};if(sha)body.sha=sha;
+  var r=await api(p,{method:'PUT',body:JSON.stringify(body)});
+  if(!r.ok)throw await erreur(r);
+  return (await r.json()).content;
+}
+async function erreur(r){
+  var m='';try{m=(await r.json()).message||''}catch(e){}
+  var t=r.status===401?'Jeton refusé (invalide ou expiré).':
+        r.status===403?'Accès refusé : le jeton doit avoir la permission « Contents : Read and write » sur ce dépôt.':
+        r.status===404?'Dépôt ou branche introuvable (ou le jeton n\'a pas accès à ce dépôt).':
+        r.status===409?'Conflit : réessaie dans quelques secondes.':'Erreur GitHub '+r.status+'.';
+  return new Error(t+(m?' ['+m+']':''));
+}
+function statut(el,cls,html){el.className='status '+cls;el.innerHTML=html}
+async function enregistrer(){
+  var st=$('st'),btn=$('save');
+  if(!cfg.token||!cfg.owner||!cfg.repo){ouvrirCfg('Renseigne le dépôt et le jeton pour enregistrer.');return}
+  btn.disabled=true;statut(st,'info','Enregistrement en cours…');
+  try{
+    var chemin=(cfg.dir?cfg.dir.replace(/^\/+|\/+$/g,'')+'/':'')+nomFichier();
+    var c=await deposer(chemin,fichier(),'Relevé compteurs — semaine du '+SEM.nom);
+    if(listeModif){
+      await deposer('equipements.json',new TextEncoder().encode(JSON.stringify({version:1,sections:liste},null,1)),'Mise à jour de la liste d\'équipements');
+      sauverListe(false);
+    }
+    store.dernier=new Date().toLocaleString('fr-CA',{dateStyle:'medium',timeStyle:'short'});sauver();
+    statut(st,'ok','Enregistré : <b>'+h(chemin)+'</b><br><a href="'+h(c.html_url)+'" target="_blank" rel="noopener">Ouvrir dans GitHub</a>');
+  }catch(e){
+    statut(st,'err',h(e.message&&/fetch|network|load/i.test(e.message)&&!/GitHub|Jeton|Accès|Dépôt|Conflit/.test(e.message)?
+      'Pas de connexion. Tes relevés restent sur l\'appareil : réessaie quand le réseau revient.':e.message));
+  }
+  btn.disabled=false;
+}
+
+// ----- Réglages -----
+function ouvrirCfg(msg){
+  $('cOwner').value=cfg.owner;$('cRepo').value=cfg.repo;$('cBranch').value=cfg.branch;$('cDir').value=cfg.dir;$('cTok').value=cfg.token;
+  if(msg)statut($('cStatus'),'info',h(msg));else $('cStatus').className='status';
+  $('ov').classList.add('on');
+}
+function lireCfg(){cfg={owner:$('cOwner').value.trim(),repo:$('cRepo').value.trim(),branch:$('cBranch').value.trim()||'main',dir:$('cDir').value.trim(),token:$('cTok').value.trim()};ecrire('rc_cfg',cfg)}
+$('cfgBtn').onclick=function(){ouvrirCfg()};
+$('cSave').onclick=function(){lireCfg();$('ov').classList.remove('on');if(onglet===2)rendre2()};
+$('ov').addEventListener('click',function(e){if(e.target===$('ov'))$('ov').classList.remove('on')});
+$('cTest').onclick=async function(){
+  lireCfg();var s=$('cStatus');statut(s,'info','Test…');
+  try{
+    var r=await api('');if(!r.ok)throw await erreur(r);
+    var j=await r.json();
+    if(j.permissions&&!j.permissions.push)statut(s,'err','Connexion OK, mais le jeton ne peut pas écrire dans ce dépôt.');
+    else statut(s,'ok','Connexion OK : '+h(j.full_name));
+  }catch(e){statut(s,'err',h(e.message))}
+};
+var armé=false;
+$('cReset').onclick=function(){
+  if(!armé){armé=true;this.textContent='Toucher encore pour confirmer';var b=this;setTimeout(function(){armé=false;b.textContent='Vider le relevé de la semaine'},4000);return}
+  armé=false;this.textContent='Vider le relevé de la semaine';store={sem:SEM.cle,r:{}};rel=store.r;sauver();$('ov').classList.remove('on');aller(onglet);majEntete();
+};
+
+// ----- Démarrage -----
+$('wk').textContent='Semaine du '+SEM.nom;
+rendre1();majEntete();
+// Liste partagée dans le dépôt (si aucune modification locale en attente)
+if(!listeModif)fetch('equipements.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){
+  if(j&&Array.isArray(j.sections)&&j.sections.length&&!listeModif){liste=j.sections;ecrire('rc_liste',liste);if(onglet===1&&!document.activeElement.matches('input'))rendre1();majEntete()}
+}).catch(function(){});
+</script>
+</body>
+</html>
