@@ -76,8 +76,8 @@ main{padding:12px 12px calc(env(safe-area-inset-bottom) + 86px);max-width:720px;
 .flt button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .rc{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;padding:10px 12px}
 .rc h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);display:flex;justify-content:space-between}
-.rl{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
-.rl b{font-size:16px}
+.rl{display:flex;justify-content:space-between;align-items:center;padding:8px 2px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.rl b{font-size:16px}.rl:last-child{border-bottom:0}.sec .body:has(.rl){padding-bottom:4px}
 .chip{font-size:13px;font-weight:700;padding:3px 9px;border-radius:99px}
 .chip.ok{background:var(--okbg);color:var(--ok)}.chip.na{background:var(--nabg);color:var(--na)}
 .chip.x{background:var(--xbg);color:var(--x)}.chip.todo{background:var(--todobg);color:var(--todo);border:0}
@@ -316,7 +316,7 @@ var liste=lire('rc_liste',null)||JSON.parse(JSON.stringify(DEFAUT));
 var listeModif=lire('rc_listeModif',false);
 var store=lire('rc_releve',null);
 if(!store||store.sem!==SEM.cle)store={sem:SEM.cle,r:{}};
-var rel=store.r, ouverts={}, onglet=1, filtre='tous';
+var rel=store.r, ouverts={}, ouverts2={}, onglet=1, filtre='tous';
 var cfg={owner:'SpyKatra',repo:'Relever',branch:'main',dir:'releves',token:(lire('rc_cfg',null)||{}).token||''};
 
 function sauver(){ecrire('rc_releve',store)}
@@ -412,7 +412,9 @@ function rendre2(){
         (sec.dual?h(r.v)+' Hrs · '+h(r.v2)+' Km':h(r.v)+(it.u?' '+h(it.u):''));
       l+='<div class="rl"><b>'+h(it.n)+'</b>'+(e==='todo'?'<button class="chip todo" data-go="'+sec.id+'">À faire ›</button>':'<span class="chip '+e+'">'+txt+'</span>')+'</div>';
     });
-    if(l)o+='<div class="rc"><h3><span>'+h(sec.nom)+'</span><span>'+compte(sec)+' / '+sec.items.length+'</span></h3>'+l+'</div>';
+    var c=compte(sec),n=sec.items.length;
+    if(l)o+='<div class="sec'+(ouverts2[sec.id]?' open':'')+'"><button data-rc="'+sec.id+'"><span class="ch">▶</span><span class="n">'+h(sec.nom)+
+      '</span><span class="c'+(c===n&&n?' done':'')+'">'+c+' / '+n+'</span></button><div class="body">'+l+'</div></div>';
   });
   if(filtre==='todo'&&!t.todo)o+='<div class="rc">Tout est validé.</div>';
   o+='<div class="save"><div class="fn">Fichier : <b>'+h(cfg.dir?cfg.dir+'/':'')+h(nomFichier())+'</b>'+
@@ -425,6 +427,8 @@ function rendre2(){
 $('tab2').addEventListener('click',function(ev){
   var t=ev.target;
   if(t.dataset.f){filtre=t.dataset.f;rendre2();return}
+  var rc=t.closest('[data-rc]');
+  if(rc){ouverts2[rc.dataset.rc]=!ouverts2[rc.dataset.rc];rc.parentNode.classList.toggle('open');return}
   if(t.dataset.go){ouverts={};ouverts[t.dataset.go]=true;aller(1);
     var el=document.querySelector('.sec.open');if(el)el.scrollIntoView({block:'start'});window.scrollBy(0,-70);return}
   if(t.id==='dl'){telecharger();return}
